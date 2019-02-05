@@ -93,7 +93,7 @@
   <ItemGroup>
     <Compile Include="Classes\ClsPiece_Imagery.vb" />
     <Compile Include="Classes\ClsPiece_StringList.vb" />
-    <Compile Include="Classes\ClsTextBox.vb" />
+    <Compile Include="Classes\ClsPiece_TextBox.vb" />
     <Compile Include="Core\ModInit.vb" />
     <Compile Include="Forms\FrmMain.Designer.vb">
       <DependentUpon>FrmMain.vb</DependentUpon>

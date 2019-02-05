@@ -16,7 +16,7 @@
 
     ' Visuals
     Public Imagery As New ClsPiece_Imagery
-    Public TextBoxes As New HashSet(Of ClsTextBox)
+    Public TextBoxes As New HashSet(Of ClsPiece_TextBox)
 
     ' Linked Pieces
     Public Parent As ClsPiece
@@ -90,7 +90,7 @@
                 bbGfx.DrawString(CStr(LastRoll), DiceFont, Brushes.Black, SizeLoc.X + 8, SizeLoc.Y - 1)
             End If
         End If
-        For Each iTB As ClsTextBox In TextBoxes
+        For Each iTB As ClsPiece_TextBox In TextBoxes
             Dim FrameRect As New Rectangle With
                 {.X = Me.SizeLoc.X + iTB.SizeLoc.X, .Y = Me.SizeLoc.Y + iTB.SizeLoc.Y,
                 .Width = iTB.SizeLoc.Width, .Height = iTB.SizeLoc.Height}
@@ -130,7 +130,7 @@
         ' Returns  My_X <= This_X <= My_X+_W  &&  My_Y <= This_Y <= My_Y+_H
         bbGfx.DrawRectangle(Pens.Red, Me.SizeLoc)
         If Me.SizeLoc.X <= thisPoint.X And thisPoint.X <= Me.SizeLoc.X + Me.SizeLoc.Width And Me.SizeLoc.Y <= thisPoint.Y And thisPoint.Y <= Me.SizeLoc.Y + Me.SizeLoc.Height Then Return True
-        For Each iTB As ClsTextBox In Me.TextBoxes
+        For Each iTB As ClsPiece_TextBox In Me.TextBoxes
             If Me.SizeLoc.X + iTB.SizeLoc.X <= thisPoint.X And thisPoint.X <= Me.SizeLoc.X + iTB.SizeLoc.X + iTB.SizeLoc.Width And Me.SizeLoc.Y + iTB.SizeLoc.Y <= thisPoint.Y And thisPoint.Y <= Me.SizeLoc.Y + iTB.SizeLoc.Y + iTB.SizeLoc.Height Then Return True
         Next
         Return False
@@ -149,7 +149,7 @@
     End Sub
 
     Public Sub AttachTextBox(aText As String, x As Integer, y As Integer, width As Integer, height As Integer)
-        Me.TextBoxes.Add(New ClsTextBox With {.Text = aText})
+        Me.TextBoxes.Add(New ClsPiece_TextBox With {.Text = aText})
         Me.TextBoxes.Last.SizeLoc.X = x
         Me.TextBoxes.Last.SizeLoc.Y = y
         Me.TextBoxes.Last.SizeLoc.Width = width
