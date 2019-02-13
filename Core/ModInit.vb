@@ -8,6 +8,7 @@
     'Public DefPen As New Pen(Color.Black)
     Public OutlinePen As New Pen(Color.FromArgb(212, Color.Black)) With {.Width = 2}
     Public FramePen As New Pen(Color.Black) With {.Width = 3}
+    Public ShadowBrush As New SolidBrush(Color.FromArgb(120, Color.Black))
 #End Region
 
 #Region "Shared Data"
@@ -46,8 +47,8 @@
         GamePieces.Last.SizeLoc.X = 32
         GamePieces.Last.SizeLoc.Y = 28
         GamePieces.Last.Imagery.StaticImg = New Bitmap(GetPicFileNamePath("folderBig.png"))
-        GamePieces.Last.SizeLoc.Width = GamePieces.Last.Img.Width
-        GamePieces.Last.SizeLoc.Height = GamePieces.Last.Img.Height
+        GamePieces.Last.SizeLoc.Width = GamePieces.Last.Imagery.StaticImg.Width
+        GamePieces.Last.SizeLoc.Height = GamePieces.Last.Imagery.StaticImg.Height
         GamePieces.Last.AttachTextBox("Right click me to load a game data pack!", 67, 0, 300, 64)
     End Sub
 
@@ -67,6 +68,8 @@
 
         fileFound = PackFolder & "\art\" & fileName
         If Dir(fileFound) <> "" Then Return fileFound
+        fileFound = PackFolder & "\" & fileName
+        If Dir(fileFound) <> "" Then Return fileFound
         fileFound = Application.StartupPath & "\default\art\" & fileName
         If Dir(fileFound) <> "" Then Return fileFound
 
@@ -82,6 +85,16 @@
         If Dir(fileFound) <> "" Then Return fileFound
 
         Return fileFound
+    End Function
+
+    Public Function GetAngle(x1 As Integer, y1 As Integer, x2 As Integer, y2 As Integer) As Single
+        Dim xDiff = x2 - x1
+        Dim yDiff = y2 - y1
+        Return CSng(Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI)
+    End Function
+
+    Public Function GetDist(x1 As Integer, y1 As Integer, x2 As Integer, y2 As Integer) As Single
+        Return CSng(Math.Sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2))
     End Function
 
     Public Sub RefreshScreen()

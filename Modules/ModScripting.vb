@@ -79,7 +79,7 @@
                 Case "height"
                     Actor.SizeLoc.Height = CInt(Args(0))
                 Case "drag"
-                    Actor.Drag(CInt(Args(0)), CInt(Args(1)))
+                    Actor.Drag(False, CInt(Args(0)), CInt(Args(1)), Actor.SizeLoc.Location)
                 Case "layer"
                     Actor.Layer = CInt(Args(0))
                 Case "img"
@@ -123,25 +123,52 @@
                 Case "parent"
                     Dim NewParent As ClsPiece = GamePieces.Find(Function(p) p.Name = Args(0))
                     If NewParent IsNot Nothing Then
-                        Actor.Parent = NewParent
-                        NewParent.Children.Add(Actor)
-                        Actor.LocRelativeToParent.X = Actor.SizeLoc.X - NewParent.SizeLoc.X
-                        Actor.LocRelativeToParent.Y = Actor.SizeLoc.Y - NewParent.SizeLoc.Y
+                        Dim convertCoordRelativeOrigin As Boolean = False
+                        If Args.Count > 1 Then
+                            Select Case Args(1)
+                                Case "origin"
+                                    convertCoordRelativeOrigin = True
+                                Case Else
+                                    convertCoordRelativeOrigin = False
+                            End Select
+                        End If
+                        MakeParentChild(convertCoordRelativeOrigin, NewParent, Actor)
                     Else
                         ScriptError("Piece not found", Actor, Cmd, TabFreeLine)
                     End If
                 Case "child"
                     Dim NewChild As ClsPiece = GamePieces.Find(Function(p) p.Name = Args(0))
                     If NewChild IsNot Nothing Then
-                        Actor.Children.Add(NewChild)
-                        NewChild.Parent = Actor
-                        Actor.LocRelativeToParent.X = NewChild.SizeLoc.X - Actor.SizeLoc.X
-                        Actor.LocRelativeToParent.Y = NewChild.SizeLoc.Y - Actor.SizeLoc.Y
+                        MakeParentChild(False, Actor, NewChild)
                     Else
                         ScriptError("Piece not found", Actor, Cmd, TabFreeLine)
                     End If
-                Case "moveable"
+                Case "movable"
                     Actor.CanMouseMove = CBool(Args(0))
+                Case "rotatable"
+                    Actor.CanMouseRotate = CBool(Args(0))
+                Case "flip vertically"
+                    Actor.Imagery.vFlip = Not Actor.Imagery.vFlip
+                Case "flip horizontally"
+                    Actor.Imagery.hFlip = Not Actor.Imagery.hFlip
+                Case "rotate"
+                    Actor.Rotate(-CSng(Args(0)))
+                Case "top angle"
+                    Actor.Imagery.TopAngleModifier = CSng(Args(0))
+                Case "rotate left"
+                    If Args Is Nothing Then
+                        Actor.Rotate(-90)
+                    Else
+                        Actor.Rotate(-CSng(Args(0)))
+                    End If
+                Case "rotate right"
+                    If Args Is Nothing Then
+                        Actor.Rotate(90)
+                    Else
+                        Actor.Rotate(CSng(Args(0)))
+                    End If
+                Case "rotate drag"
+
                 Case "roll"
                     Actor.Roll()
                 Case "toggle lock"
@@ -174,7 +201,11 @@
                 Case "add string"
                     Actor.Stringlists.Last.Texts.Add(Args(0))
                 Case Else
-                    ScriptError("Cmd not found", Actor, Cmd, TabFreeLine)
+                    If Actor IsNot Nothing Then
+                        ScriptError("Cmd not found", Actor, Cmd, TabFreeLine)
+                    Else
+                        ScriptError("Actor not understood: ", Nothing, Left(0), TabFreeLine)
+                    End If
             End Select
 SkipToNext:
         Next
@@ -182,9 +213,33 @@ SkipToNext:
     End Sub
 
     Private Sub ScriptError(errMsg As String, aPiece As ClsPiece, cmd As String, TabFreeLine As String)
-        MsgBox(errMsg & " -- cmd: >" & cmd & "<" &
-                           vbNewLine & " Actor: >" & aPiece.Name & "<" &
-                           vbNewLine & " Script Line:" & vbNewLine & ">" & TabFreeLine & "<")
+        If aPiece IsNot Nothing Then
+            MsgBox("Error: " & errMsg &
+                vbNewLine & " Cmd: >" & cmd & "<" &
+                vbNewLine & " Actor: >" & aPiece.Name & "<" &
+                vbNewLine & " Script Line:" & vbNewLine & ">" & TabFreeLine & "<")
+        Else
+            MsgBox(errMsg & " -- cmd: -n/a-" &
+                vbNewLine & " Actor !unidentified! : >" & cmd & "<" &
+                vbNewLine & " Script Line:" & vbNewLine & ">" & TabFreeLine & "<")
+        End If
+    End Sub
+
+    Private Sub MakeParentChild(BasedOnOrigin As Boolean, ParentPiece As ClsPiece, ChildPiece As ClsPiece)
+        ParentPiece.Children.Add(ChildPiece)
+        ChildPiece.Parent = ParentPiece
+        ParentPiece.Children.Add(ChildPiece)
+        Dim parentCenter As Point
+        Dim childCenter As Point = New Point(ChildPiece.SizeLoc.X + CInt(Int(ChildPiece.SizeLoc.Width / 2)), ChildPiece.SizeLoc.Y + CInt(Int(ChildPiece.SizeLoc.Height / 2)))
+        If BasedOnOrigin Then
+            parentCenter.X = CInt(Int(ParentPiece.SizeLoc.Width / 2))
+            parentCenter.Y = CInt(Int(ParentPiece.SizeLoc.Height / 2))
+        Else
+            parentCenter.X = ParentPiece.SizeLoc.X + CInt(Int(ParentPiece.SizeLoc.Width / 2))
+            parentCenter.Y = ParentPiece.SizeLoc.Y + CInt(Int(ParentPiece.SizeLoc.Height / 2))
+        End If
+        ChildPiece.AngFromParentCenter = GetAngle(parentCenter.X, parentCenter.Y, childCenter.X, childCenter.Y)
+        ChildPiece.DistFromParentCenter = GetDist(parentCenter.X, parentCenter.Y, childCenter.X, childCenter.Y)
     End Sub
 
     Private Sub DrawBoard(PicFile As String, Optional arg1 As Integer = 0, Optional arg2 As Integer = 0)

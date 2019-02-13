@@ -49,7 +49,7 @@
                 LastMouseLoc = e.Location
                 LastMouseLoc.Y -= Sys_TopMenuBuffer
                 Sys_CurrentPiece = Nothing
-                Sys_MovePiece.Drag(moveX, moveY)
+                Sys_MovePiece.Drag(e.Button = MouseButtons.Right, moveX, moveY, e.Location)
                 Me.Invalidate()
             End If
         End If
@@ -80,8 +80,13 @@
             ' be the foremost one that the player thinks s/he is clicking on.
             For intA As Integer = GamePieces.Count - 1 To 0 Step -1
                 Dim iPiece As ClsPiece = GamePieces(intA)
+                ' Research transforming click here:
+                'https://www.codeproject.com/Questions/265952/More-GDIplus-fun-moving-a-scaled-rotated-image
+                'Dim ptByPiece() As Point = {LastMouseLoc}
+                'iPiece.ClickMatrix.TransformPoints(ptByPiece)
+                'MsgBox("X1: " & LastMouseLoc.X & " Y1: " & LastMouseLoc.Y & vbNewLine & " X2: " & ptByPiece(0).X & " Y2: " & ptByPiece(0).Y)
                 If iPiece.Contains(LastMouseLoc) Then
-                    Sys_MovePiece = iPiece.LowestMoveableUnit
+                    Sys_MovePiece = iPiece.LowestMovableUnit
                     Sys_CurrentPiece = iPiece
                     Exit For
                 End If

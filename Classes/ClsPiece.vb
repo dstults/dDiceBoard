@@ -3,13 +3,16 @@
     ' Base Data
     Public Name As String
     Public CanMouseMove As Boolean = True
-    Public Function LowestMoveableUnit() As ClsPiece
+    Public CanMouseRotate As Boolean = False
+    Public Function LowestMovableUnit() As ClsPiece
         If Me.CanMouseMove Then Return Me
-        If Parent IsNot Nothing Then Return Parent.LowestMoveableUnit
+        If Parent IsNot Nothing Then Return Parent.LowestMovableUnit
         Return Nothing
     End Function
     Public Layer As Integer
     Public SizeLoc As New Rectangle
+    Public ClickMatrix As Drawing2D.Matrix
+    Public Rotation As Single
     Public L_Click_Script As New List(Of String)
     Public R_Click_Script As New List(Of String)
     Public M_Click_Script As New List(Of String)
@@ -20,7 +23,8 @@
 
     ' Linked Pieces
     Public Parent As ClsPiece
-    Public LocRelativeToParent As Point
+    Public AngFromParentCenter As Single
+    Public DistFromParentCenter As Single
     Public Children As New HashSet(Of ClsPiece)
 
     ' Roller-Only
@@ -41,6 +45,11 @@
 
     ' Deck-Only
     Public Stringlists As New List(Of ClsPiece_StringList)
+
+    Public Sub New()
+        Imagery.Parent = Me
+    End Sub
+
     Public Function GetRndTextFromList(listName As String) As String
         Return Stringlists.Find(Function(p) p.Name = listName).RndText
     End Function
@@ -57,32 +66,82 @@
         RunScript(M_Click_Script)
     End Sub
 
-    Public Sub Drag(ByVal moveX As Integer, ByVal moveY As Integer)
-        If CanMouseMove And (moveX <> 0 Or moveY <> 0) Then
-            Me.SizeLoc.X += moveX
-            Me.SizeLoc.Y += moveY
-            If Me.SizeLoc.Left < 4 Then Me.SizeLoc.X = 4
-            If Me.SizeLoc.Top < 4 Then Me.SizeLoc.Y = 4
-            If Me.SizeLoc.Right > BackBuffer.Width - 2 Then Me.SizeLoc.X = BackBuffer.Width - Me.SizeLoc.Width - 2
-            If Me.SizeLoc.Bottom > BackBuffer.Height - 3 Then Me.SizeLoc.Y = BackBuffer.Height - Me.SizeLoc.Height - 3
-            RefreshDisplay = True
-            If Children.Count > 0 Then Me.MoveChildren()
+    Public Sub Drag(R_Button As Boolean, ByVal moveX As Integer, ByVal moveY As Integer, ByVal mousePt As Point)
+        If moveX <> 0 Or moveY <> 0 Then
+            If R_Button And Me.CanMouseRotate Then
+                'Me.Rotate(moveX - moveY)
+                Me.SetRotation(GetAngle(Me.SizeLoc.X + CInt(Int(Me.SizeLoc.Width / 2)), Me.SizeLoc.Y + CInt(Int(Me.SizeLoc.Height / 2)), mousePt.X, mousePt.Y) + Imagery.TopAngleModifier)
+                RefreshDisplay = True
+            ElseIf Me.CanMouseMove Then
+                Me.SizeLoc.X += moveX
+                Me.SizeLoc.Y += moveY
+                If Me.SizeLoc.Left < 4 Then Me.SizeLoc.X = 4
+                If Me.SizeLoc.Top < 4 Then Me.SizeLoc.Y = 4
+                If Me.SizeLoc.Right > BackBuffer.Width - 2 Then Me.SizeLoc.X = BackBuffer.Width - Me.SizeLoc.Width - 2
+                If Me.SizeLoc.Bottom > BackBuffer.Height - 3 Then Me.SizeLoc.Y = BackBuffer.Height - Me.SizeLoc.Height - 3
+                If Children.Count > 0 Then Me.MoveChildren()
+                RefreshDisplay = True
+            End If
         End If
     End Sub
     Public Sub MoveChildren()
+        Dim parentCenter As Point = New Point(Me.SizeLoc.X + CInt(Int(Me.SizeLoc.Width / 2)), Me.SizeLoc.Y + CInt(Int(Me.SizeLoc.Height / 2)))
         For Each iChild As ClsPiece In Children
-            iChild.SizeLoc.X = Me.SizeLoc.X + iChild.LocRelativeToParent.X
-            iChild.SizeLoc.Y = Me.SizeLoc.Y + iChild.LocRelativeToParent.Y
+            Dim angToChild As Single = CSng((iChild.AngFromParentCenter + Me.Rotation) / 180 * Math.PI)
+
+            Dim dX = CInt(Int(iChild.DistFromParentCenter * Math.Cos(angToChild)))
+            Dim dY = CInt(Int(iChild.DistFromParentCenter * Math.Sin(angToChild)))
+            'MsgBox("Angle " & ang1 & " has changed to " & ang2 & " and as such the new dX is " & dX & " and dY is " & dY & ".")
+
+            Dim childCenter As Point
+            childCenter.X = parentCenter.X + dX
+            childCenter.Y = parentCenter.Y + dY
+            iChild.SizeLoc.X = childCenter.X - CInt(Int(iChild.SizeLoc.Width / 2))
+            iChild.SizeLoc.Y = childCenter.Y - CInt(Int(iChild.SizeLoc.Width / 2))
+
             If iChild.Children.Count > 0 Then iChild.MoveChildren()
         Next
     End Sub
 
-    Public Function Img() As Image
-        Return Imagery.Img
-    End Function
+    Public Sub SetRotation(nAng As Single)
+        Dim dAng As Single = nAng - Rotation
+        Rotation = nAng
+        If Children.Count > 0 Then Me.RotateChildren(dAng)
+        CheckRotation()
+    End Sub
+    Public Sub Rotate(dAng As Single)
+        Rotation += dAng
+        If Children.Count > 0 Then Me.RotateChildren(dAng)
+        CheckRotation()
+    End Sub
+    Private Sub CheckRotation()
+        If Rotation > 180 Then
+            Do Until Rotation <= 180
+                Rotation -= 360
+            Loop
+        End If
+        If Rotation <= -180 Then
+            Do Until Rotation > -180
+                Rotation += 360
+            Loop
+        End If
+    End Sub
+    Public Sub RotateChildren(dAng As Single)
+        For Each iChild As ClsPiece In Children
+            iChild.Rotate(dAng)
+            If iChild.Children.Count > 0 Then iChild.RotateChildren(dAng)
+        Next
+        MoveChildren()
+    End Sub
+
+    Public Sub DrawImg()
+        Me.Imagery.DrawImg()
+    End Sub
 
     Public Overridable Sub Render()
-        bbGfx.DrawImage(Img, SizeLoc)
+        bbGfx.ResetTransform()
+        Me.DrawImg
+        bbGfx.ResetTransform()
         If IsDie() Then
             If RollLocked Then
                 bbGfx.DrawString("[" & Format(LastRoll, "0") & "]", DiceFont, Brushes.Black, SizeLoc.X - 4, SizeLoc.Y - 1)
@@ -98,7 +157,7 @@
                 {.X = FrameRect.X + 4, .Y = FrameRect.Y + 4,
                 .Width = FrameRect.Width, .Height = FrameRect.Height}
             If iTB.DrawFrame Then
-                bbGfx.FillRectangle(Brushes.DarkGray, ShadowRect)
+                bbGfx.FillRectangle(ShadowBrush, ShadowRect)
                 bbGfx.FillRectangle(Brushes.LightYellow, FrameRect)
                 bbGfx.DrawRectangle(FramePen, FrameRect)
             End If

@@ -59,6 +59,7 @@ Partial Class FrmMain
         Me.MainMenuStrip = Me.MenuStrip1
         Me.MaximizeBox = False
         Me.Name = "FrmMain"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.Manual
         Me.Text = "Darren's Dice Board"
         Me.MenuStrip1.ResumeLayout(False)
         Me.MenuStrip1.PerformLayout()
